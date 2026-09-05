@@ -1,0 +1,6 @@
+{
+  "name": "Portal de la Comunidad Discord",
+  "description": "Plataforma web integral para servidores de Discord con votaciones interactivas, galería de miembros destacados, centro de soporte, repositorio de configuraciones comunitarias con moderación administrativa, estadísticas de crecimiento en tiempo real y autenticación con Discord.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
