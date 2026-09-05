@@ -45,11 +45,20 @@ setInterval(() => {
 
 // Helper to determine base URL
 function getAppUrl(req: express.Request): string {
-  if (process.env.APP_URL && process.env.APP_URL !== 'MY_APP_URL') {
+  // Check if client explicitly sent origin via query or header
+  const clientOrigin = (req.query?.origin as string) || (req.headers['x-client-origin'] as string);
+  if (clientOrigin && clientOrigin.startsWith('http')) {
+    return clientOrigin.replace(/\/$/, '');
+  }
+
+  if (process.env.APP_URL && process.env.APP_URL !== 'MY_APP_URL' && process.env.APP_URL.trim() !== '') {
     return process.env.APP_URL.replace(/\/$/, '');
   }
-  const host = req.get('host') || 'localhost:3000';
-  const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+
+  const forwardedProto = req.get('x-forwarded-proto');
+  const forwardedHost = req.get('x-forwarded-host');
+  const host = forwardedHost || req.get('host') || 'localhost:3000';
+  const protocol = forwardedProto || (req.secure || req.protocol === 'https' ? 'https' : 'http');
   return `${protocol}://${host}`;
 }
 
@@ -59,13 +68,13 @@ function getAppUrl(req: express.Request): string {
 
 app.get('/api/auth/discord/config', (req, res) => {
   const baseUrl = getAppUrl(req);
-  const redirectUri = `${baseUrl}/api/auth/discord/callback`;
+  const redirectUri = process.env.DISCORD_REDIRECT_URI || `${baseUrl}/api/auth/discord/callback`;
   const clientId = process.env.DISCORD_CLIENT_ID || '';
   const isConfigured = Boolean(clientId && process.env.DISCORD_CLIENT_SECRET);
 
   res.json({
     configured: isConfigured,
-    clientId: clientId ? `${clientId.slice(0, 4)}...${clientId.slice(-4)}` : null,
+    clientId: clientId || null,
     redirectUri,
     appUrl: baseUrl,
   });
@@ -73,8 +82,11 @@ app.get('/api/auth/discord/config', (req, res) => {
 
 app.get('/api/auth/discord/url', (req, res) => {
   const baseUrl = getAppUrl(req);
-  const redirectUri = `${baseUrl}/api/auth/discord/callback`;
+  const requestedRedirect = (req.query?.redirect_uri as string) || (req.query?.redirectUri as string);
+  const redirectUri = requestedRedirect || process.env.DISCORD_REDIRECT_URI || `${baseUrl}/api/auth/discord/callback`;
   const clientId = process.env.DISCORD_CLIENT_ID;
+
+  console.log(`[Discord OAuth] Authorize request using clientId: ${clientId ? clientId.slice(0, 5) + '...' : 'NONE'}, redirectUri: ${redirectUri}`);
 
   if (!clientId || clientId.trim() === '') {
     // Generate a fallback simulated URL with redirect or notify client
@@ -87,11 +99,17 @@ app.get('/api/auth/discord/url', (req, res) => {
     return;
   }
 
+  // Encode redirectUri in state so callback always knows exactly which redirect_uri was authorized
+  const stateObj = { redirectUri, timestamp: Date.now() };
+  const state = Buffer.from(JSON.stringify(stateObj)).toString('base64url');
+
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: 'identify email guilds',
+    state,
+    prompt: 'consent',
   });
 
   const authUrl = `https://discord.com/oauth2/authorize?${params.toString()}`;
@@ -103,9 +121,34 @@ app.get('/api/auth/discord/url', (req, res) => {
 });
 
 app.get(['/api/auth/discord/callback', '/api/auth/discord/callback/'], async (req, res) => {
+  if (req.query.error) {
+    const errorDesc = (req.query.error_description as string) || (req.query.error as string);
+    res.status(400).send(`
+      <html>
+        <body style="background:#0f1117;color:#f23f43;font-family:sans-serif;text-align:center;padding:50px;">
+          <h2>Error de Discord</h2>
+          <p>${errorDesc}</p>
+          <button onclick="window.close()" style="margin-top:20px;padding:8px 16px;background:#5865F2;color:white;border:none;border-radius:6px;cursor:pointer;">Cerrar ventana</button>
+        </body>
+      </html>
+    `);
+    return;
+  }
+
   const code = req.query.code as string;
-  const baseUrl = getAppUrl(req);
-  const redirectUri = `${baseUrl}/api/auth/discord/callback`;
+  const stateParam = req.query.state as string;
+  let redirectUri = `${getAppUrl(req)}/api/auth/discord/callback`;
+
+  if (stateParam) {
+    try {
+      const parsed = JSON.parse(Buffer.from(stateParam, 'base64url').toString('utf8'));
+      if (parsed.redirectUri) {
+        redirectUri = parsed.redirectUri;
+      }
+    } catch (e) {
+      // fallback to computed redirectUri
+    }
+  }
 
   if (!code) {
     res.status(400).send(`

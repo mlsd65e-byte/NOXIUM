@@ -14,7 +14,7 @@ interface AuthContextType {
   currentUser: DiscordUser;
   demoUsers: DiscordUser[];
   switchUser: (userId: string) => void;
-  loginWithDiscord: () => Promise<void>;
+  loginWithDiscord: (overrideRedirectUri?: string) => Promise<void>;
   logout: () => void;
   oauthConfig: OAuthConfig | null;
   isLoadingAuth: boolean;
@@ -54,14 +54,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Fetch OAuth config from server
   useEffect(() => {
+    const origin = window.location.origin;
     const fallbackConfig: OAuthConfig = {
       configured: false,
       clientId: null,
-      redirectUri: `${window.location.origin}/api/auth/discord/callback`,
-      appUrl: window.location.origin,
+      redirectUri: `${origin}/api/auth/discord/callback`,
+      appUrl: origin,
     };
 
-    safeFetchJson<OAuthConfig>('/api/auth/discord/config', undefined, fallbackConfig)
+    safeFetchJson<OAuthConfig>(`/api/auth/discord/config?origin=${encodeURIComponent(origin)}`, undefined, fallbackConfig)
       .then(data => setOauthConfig(data))
       .catch(() => setOauthConfig(fallbackConfig));
   }, []);
@@ -86,11 +87,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginWithDiscord = async () => {
+  const loginWithDiscord = async (overrideRedirectUri?: string) => {
     setIsLoadingAuth(true);
     try {
-      const data = await safeFetchJson<{ configured: boolean; url: string | null }>(
-        '/api/auth/discord/url',
+      const origin = window.location.origin;
+      const queryParams = new URLSearchParams({ origin });
+      if (overrideRedirectUri) {
+        queryParams.set('redirect_uri', overrideRedirectUri);
+      }
+
+      const data = await safeFetchJson<{ configured: boolean; url: string | null; redirectUri?: string }>(
+        `/api/auth/discord/url?${queryParams.toString()}`,
         undefined,
         { configured: false, url: null }
       );
