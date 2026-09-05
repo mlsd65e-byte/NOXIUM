@@ -14,6 +14,71 @@ export interface DiscordUser {
   canModerate: boolean;
   canPostPolls: boolean;
   isDemoUser?: boolean;
+  guilds?: {
+    id: string;
+    name: string;
+    icon: string | null;
+    iconUrl?: string;
+    isOwner: boolean;
+    isAdmin: boolean;
+    permissions: string;
+  }[];
+}
+
+export interface DiscordGuildChannel {
+  id: string;
+  name: string;
+  type: number; // 0 = text, 2 = voice, 4 = category, 5 = announcement, 13 = stage
+  position?: number;
+  parent_id?: string | null;
+}
+
+export interface DiscordGuildRole {
+  id: string;
+  name: string;
+  color: number;
+  hexColor: string;
+  position: number;
+  permissions?: string;
+  membersCount?: number;
+}
+
+export interface DiscordGuildMember {
+  id: string;
+  username: string;
+  global_name?: string;
+  nickname?: string | null;
+  avatar: string;
+  roles: string[];
+  joinedAt: string;
+  isBot?: boolean;
+  status?: 'online' | 'idle' | 'dnd' | 'offline';
+  game?: string;
+}
+
+export interface DiscordGuildData {
+  id: string;
+  name: string;
+  icon: string | null;
+  iconUrl: string;
+  description: string | null;
+  splash: string | null;
+  banner: string | null;
+  memberCount: number;
+  onlineCount: number;
+  voiceActiveCount: number;
+  boostTier: number;
+  boostCount: number;
+  ownerId?: string;
+  isOwner?: boolean;
+  isRealData: boolean;
+  source: 'discord_bot_api' | 'discord_widget' | 'oauth_user' | 'mock';
+  instantInvite?: string | null;
+  channels: DiscordGuildChannel[];
+  roles: DiscordGuildRole[];
+  members: DiscordGuildMember[];
+  emojis: { id: string; name: string; animated?: boolean; url: string }[];
+  lastSyncedAt?: string;
 }
 
 export interface PollOption {

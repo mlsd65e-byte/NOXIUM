@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ConfigPreset, SupportTicket, ModerationLog } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useDiscordServer } from '../context/DiscordServerContext';
 import { safeFetchJson } from '../utils/apiClient';
 import {
   Shield,
@@ -18,6 +19,11 @@ import {
   Search,
   Filter,
   Check,
+  Server,
+  RefreshCw,
+  Sliders,
+  Radio,
+  ExternalLink,
 } from 'lucide-react';
 
 interface AdminPanelModalProps {
@@ -32,7 +38,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   onRefreshConfigs,
 }) => {
   const { currentUser, canModerate } = useAuth();
-  const [activeTab, setActiveTab] = useState<'configs' | 'tickets' | 'logs'>('configs');
+  const { currentGuild, isRealData, isSyncing, syncGuild, clearMockData, apiStatus, setShowServerModal, lastSyncedAt } = useDiscordServer();
+  const [activeTab, setActiveTab] = useState<'configs' | 'tickets' | 'logs' | 'discord'>('configs');
   const [configs, setConfigs] = useState<ConfigPreset[]>([]);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [logs, setLogs] = useState<ModerationLog[]>([]);
@@ -40,6 +47,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [rejectReason, setRejectReason] = useState('');
   const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
   const [filterConfigStatus, setFilterConfigStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
+  const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -268,10 +276,38 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             <History className="w-4 h-4" />
             Registro de Auditoría ({logs.length})
           </button>
+
+          <button
+            onClick={() => setActiveTab('discord')}
+            className={`pb-3 font-bold border-b-2 flex items-center gap-1.5 transition ${
+              activeTab === 'discord'
+                ? 'border-[#5865F2] text-[#5865F2]'
+                : 'border-transparent text-slate-400 hover:text-white'
+            }`}
+          >
+            <Server className="w-4 h-4" />
+            Servidor Discord & Datos Reales
+            <span className={`px-1.5 py-0.5 rounded-full font-bold text-[10px] ${
+              isRealData ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+            }`}>
+              {isRealData ? 'API Real' : 'Modo Demo'}
+            </span>
+          </button>
         </div>
 
         {/* Tab Content Body */}
         <div className="p-6 overflow-y-auto flex-1 space-y-4">
+          {actionSuccessMsg && (
+            <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center justify-between animate-in fade-in">
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                {actionSuccessMsg}
+              </span>
+              <button onClick={() => setActionSuccessMsg(null)} className="text-emerald-400 hover:text-white">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
           {/* 1. CONFIGS MODERATION TAB */}
           {activeTab === 'configs' && (
             <div className="space-y-4">
@@ -462,6 +498,207 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   </span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* 4. DISCORD SERVER & REAL DATA MANAGEMENT TAB */}
+          {activeTab === 'discord' && (
+            <div className="space-y-6">
+              {/* Server Connection Overview */}
+              <div className="bg-[#11131f] border border-slate-800 rounded-2xl p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    {currentGuild.icon ? (
+                      <img
+                        src={currentGuild.icon}
+                        alt={currentGuild.name}
+                        className="w-14 h-14 rounded-2xl border-2 border-[#5865F2]/40 object-cover"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-2xl bg-[#5865F2]/20 border border-[#5865F2]/40 flex items-center justify-center text-[#5865F2]">
+                        <Server className="w-7 h-7" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-white">{currentGuild.name}</h3>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                          isRealData
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          {isRealData ? 'API Oficial Discord' : 'Simulación / Demo'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 font-mono mt-0.5">
+                        Guild ID: <span className="text-slate-200">{currentGuild.id}</span>
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Última sincronización: {lastSyncedAt || 'No sincronizado'} • Fuente: {currentGuild.source}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={async () => {
+                        const res = await syncGuild();
+                        if (res) setActionSuccessMsg('¡Datos sincronizados con éxito desde Discord!');
+                      }}
+                      disabled={isSyncing}
+                      className="px-3.5 py-2 rounded-xl bg-[#5865F2] hover:bg-[#4752c4] text-white text-xs font-bold flex items-center gap-2 transition disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                      {isSyncing ? 'Sincronizando...' : 'Sincronizar Ahora'}
+                    </button>
+                    <button
+                      onClick={() => setShowServerModal(true)}
+                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                    >
+                      <Sliders className="w-3.5 h-3.5" />
+                      Cambiar Servidor
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Server Counters */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                  <div className="bg-[#171928] border border-slate-800/80 rounded-xl p-3">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Miembros Reales</span>
+                    <span className="text-xl font-black text-white font-mono block mt-0.5">
+                      {currentGuild.memberCount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="bg-[#171928] border border-slate-800/80 rounded-xl p-3">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">En Línea</span>
+                    <span className="text-xl font-black text-emerald-400 font-mono block mt-0.5">
+                      {currentGuild.onlineCount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="bg-[#171928] border border-slate-800/80 rounded-xl p-3">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">En Canales de Voz</span>
+                    <span className="text-xl font-black text-purple-400 font-mono block mt-0.5">
+                      {currentGuild.voiceActiveCount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="bg-[#171928] border border-slate-800/80 rounded-xl p-3">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Nivel Nitro Boost</span>
+                    <span className="text-xl font-black text-pink-400 font-mono block mt-0.5">
+                      Nivel {currentGuild.boostTier || 1} ({currentGuild.boostCount || 0} boosts)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Render.com Configuration Diagnostic */}
+              <div className="bg-[#11131f] border border-slate-800 rounded-2xl p-5 space-y-3">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-[#5865F2]" />
+                  Variables de Entorno en Render.com
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Para que la app muestre tus datos 100% reales en tu servidor de Render, asegúrate de haber añadido estas variables en el panel de Render:
+                </p>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#161828] border border-slate-800 font-mono">
+                    <div>
+                      <span className="text-indigo-300 font-bold">DISCORD_GUILD_ID</span>
+                      <p className="text-[11px] text-slate-400 font-sans">El ID numérico de tu servidor de Discord (Activo para widget y bot)</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      apiStatus?.hasGuildId ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                    }`}>
+                      {apiStatus?.hasGuildId ? 'Detectado' : 'Usando Demo'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#161828] border border-slate-800 font-mono">
+                    <div>
+                      <span className="text-indigo-300 font-bold">DISCORD_BOT_TOKEN</span>
+                      <p className="text-[11px] text-slate-400 font-sans">Token del bot en Discord Developer Portal (permite leer canales y roles reales)</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      apiStatus?.hasBotToken ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-300'
+                    }`}>
+                      {apiStatus?.hasBotToken ? 'Configurado' : 'Opcional (Widget activo)'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#161828] border border-slate-800 font-mono">
+                    <div>
+                      <span className="text-indigo-300 font-bold">DISCORD_CLIENT_ID & SECRET</span>
+                      <p className="text-[11px] text-slate-400 font-sans">Credenciales OAuth2 para login con Discord y asignación automática de roles</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      apiStatus?.hasClientId ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-300'
+                    }`}>
+                      {apiStatus?.hasClientId ? 'Configurado' : 'Opcional'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Data Reset & Cleaning */}
+              <div className="bg-rose-950/20 border border-rose-500/30 rounded-2xl p-5 space-y-3">
+                <h4 className="text-sm font-bold text-rose-300 flex items-center gap-2">
+                  <Trash2 className="w-4 h-4 text-rose-400" />
+                  Limpiar Datos Falsos de Demostración
+                </h4>
+                <p className="text-xs text-rose-200/70 leading-relaxed">
+                  Si ya conectaste tu servidor real o vas a lanzar el portal para tus miembros, puedes vaciar con un clic las encuestas de prueba y tickets simulados de muestra para empezar desde cero.
+                </p>
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    onClick={async () => {
+                      if (confirm('¿Deseas vaciar los tickets falsos de soporte para dejar la bandeja limpia?')) {
+                        const ok = await clearMockData(true, false, false);
+                        if (ok) {
+                          setActionSuccessMsg('Bandeja de tickets limpiada con éxito.');
+                          fetchData();
+                        }
+                      }
+                    }}
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    Vaciar Tickets de Prueba
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      if (confirm('¿Deseas vaciar las encuestas falsas de prueba?')) {
+                        const ok = await clearMockData(false, true, false);
+                        if (ok) {
+                          setActionSuccessMsg('Encuestas de prueba eliminadas con éxito.');
+                          fetchData();
+                        }
+                      }
+                    }}
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    Vaciar Encuestas de Prueba
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      if (confirm('¿Confirmas que deseas reiniciar TODO (tickets y encuestas de muestra) para dejar el portal completamente limpio?')) {
+                        const ok = await clearMockData(true, true, false);
+                        if (ok) {
+                          setActionSuccessMsg('¡Portal reiniciado a estado limpio con éxito!');
+                          fetchData();
+                        }
+                      }
+                    }}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Limpiar Todos los Datos Demo
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useDiscordServer } from '../context/DiscordServerContext';
 import {
   Shield,
   Flame,
@@ -16,6 +17,8 @@ import {
   HelpCircle,
   Copy,
   Check,
+  Server,
+  RefreshCw,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -32,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
   pendingConfigsCount,
 }) => {
   const { currentUser, switchUser, demoUsers, loginWithDiscord, logout, canModerate, setShowOAuthModal } = useAuth();
+  const { currentGuild, isRealData, isSyncing, setShowServerModal, syncGuild } = useDiscordServer();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
 
@@ -53,7 +57,8 @@ export const Header: React.FC<HeaderProps> = ({
   const currentRoleBadge = getRoleBadge(currentUser.roles[0] || 'Miembro');
 
   const copyInvite = () => {
-    navigator.clipboard.writeText('discord.gg/nexus-community');
+    const inviteUrl = currentGuild.instantInvite || 'https://discord.gg/nexus-community';
+    navigator.clipboard.writeText(inviteUrl);
     setCopiedInvite(true);
     setTimeout(() => setCopiedInvite(false), 2000);
   };
@@ -64,30 +69,63 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between h-16 sm:h-20 gap-2">
           {/* Logo & Server Identity */}
           <div className="flex items-center gap-3 shrink-0">
-            <div className="relative">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-[#5865F2] to-indigo-700 flex items-center justify-center text-white shadow-lg shadow-[#5865F2]/25">
-                <svg className="w-6 h-6 sm:w-7 sm:h-7 fill-current" viewBox="0 0 24 24">
-                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028z" />
-                </svg>
-              </div>
+            <button
+              onClick={() => setShowServerModal(true)}
+              className="relative group text-left transition focus:outline-none"
+              title="Haz clic para administrar el servidor de Discord conectado"
+            >
+              {currentGuild.iconUrl && currentGuild.icon ? (
+                <img
+                  src={currentGuild.iconUrl}
+                  alt={currentGuild.name}
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl object-cover border border-indigo-500/40 shadow-lg shadow-[#5865F2]/25 group-hover:scale-105 transition"
+                />
+              ) : (
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-[#5865F2] to-indigo-700 flex items-center justify-center text-white shadow-lg shadow-[#5865F2]/25 group-hover:scale-105 transition">
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7 fill-current" viewBox="0 0 24 24">
+                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028z" />
+                  </svg>
+                </div>
+              )}
               <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-[#11131c]"></span>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isRealData ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+                <span className={`relative inline-flex rounded-full h-3.5 w-3.5 border-2 border-[#11131c] ${isRealData ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
               </span>
-            </div>
+            </button>
 
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-extrabold text-base sm:text-lg text-white tracking-tight leading-none">
-                  NEXUS <span className="text-[#5865F2]">COMMUNITY</span>
-                </h1>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-pink-500/15 text-pink-400 border border-pink-500/30">
-                  <Flame className="w-2.5 h-2.5 fill-current" /> Lvl 3 Nitro
-                </span>
+                <button
+                  onClick={() => setShowServerModal(true)}
+                  className="font-extrabold text-base sm:text-lg text-white tracking-tight leading-none hover:text-[#5865F2] transition text-left flex items-center gap-1.5"
+                >
+                  <span className="truncate max-w-[150px] sm:max-w-[240px]">{currentGuild.name}</span>
+                </button>
+                <button
+                  onClick={() => setShowServerModal(true)}
+                  className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border transition ${
+                    isRealData
+                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
+                      : 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
+                  }`}
+                  title="Estado del servidor de Discord"
+                >
+                  {isRealData ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Discord En Vivo
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                      Modo Demo
+                    </>
+                  )}
+                </button>
               </div>
               <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                <span>3,418 en línea</span>
+                <span>{(currentGuild.onlineCount || 3418).toLocaleString()} en línea</span>
                 <span className="text-slate-600">•</span>
                 <button
                   onClick={copyInvite}
@@ -100,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
                     </span>
                   ) : (
                     <span className="flex items-center gap-1">
-                      discord.gg/nexus <Copy className="w-2.5 h-2.5" />
+                      Invitación <Copy className="w-2.5 h-2.5" />
                     </span>
                   )}
                 </button>
@@ -173,6 +211,21 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Action Controls: Admin Panel & User Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Discord Server Sync Button */}
+            <button
+              onClick={() => setShowServerModal(true)}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold border transition ${
+                isRealData
+                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  : 'bg-[#5865F2]/15 hover:bg-[#5865F2]/25 text-[#7289da] border-[#5865F2]/30'
+              }`}
+              title="Vincular servidor de Discord o sincronizar datos reales"
+            >
+              <Server className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span className="hidden sm:inline">Servidor Discord</span>
+              {isSyncing && <RefreshCw className="w-3 h-3 animate-spin text-indigo-300 ml-0.5" />}
+            </button>
+
             {/* Admin Panel Button */}
             {canModerate && (
               <button
@@ -303,6 +356,17 @@ export const Header: React.FC<HeaderProps> = ({
                         <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028z" />
                       </svg>
                       Conectar mi cuenta de Discord
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        setShowServerModal(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#181b2a] hover:bg-[#202336] text-indigo-300 rounded-lg text-xs font-semibold transition"
+                    >
+                      <Server className="w-3.5 h-3.5" />
+                      Configurar Servidor de Discord
                     </button>
 
                     <button

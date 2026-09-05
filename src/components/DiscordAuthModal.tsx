@@ -138,21 +138,57 @@ export const DiscordAuthModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick link to Developer Portal */}
-          <div className="bg-[#1a1d2e] border border-slate-700/60 rounded-xl p-4 flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-white text-xs">Abrir panel de Discord Developer Portal</p>
-              <p className="text-[11px] text-slate-400">Ve directamente a Applications &gt; Tu App &gt; OAuth2 &gt; Redirects</p>
+          {/* Render.com Specific Setup Guide */}
+          <div className="bg-indigo-950/40 border border-indigo-500/40 rounded-xl p-4 space-y-3">
+            <div className="flex items-start gap-2.5">
+              <div className="p-1 rounded bg-indigo-500/20 text-indigo-400 shrink-0 mt-0.5">
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-white text-sm">
+                    ¿Estás alojando en Render.com?
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-300 font-semibold">
+                    Guía Render
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  En Render tu aplicación tiene un dominio propio del tipo <code className="text-amber-300 font-mono">https://tu-servicio.onrender.com</code>. Para que Discord lo acepte:
+                </p>
+              </div>
             </div>
-            <a
-              href="https://discord.com/developers/applications"
-              target="_blank"
-              rel="noreferrer"
-              className="px-3 py-1.5 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shrink-0"
-            >
-              <span>Ir a Discord Portal</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+
+            <div className="bg-[#0b0d14] border border-indigo-500/30 rounded-lg p-3 text-xs space-y-2">
+              <p className="font-semibold text-slate-200">
+                1. En tu panel de Discord Developers (OAuth2 &gt; Redirects):
+              </p>
+              <p className="text-slate-400 text-[11px]">
+                Debes registrar exactamente tu URL de Render terminada en <code className="text-emerald-400 font-mono">/api/auth/discord/callback</code>:
+              </p>
+              <div className="bg-[#121520] p-2.5 rounded border border-slate-700 font-mono text-[11px] text-amber-300 break-all select-all">
+                https://<span className="text-white font-bold">&lt;tu-servicio&gt;</span>.onrender.com/api/auth/discord/callback
+              </div>
+              <p className="text-[11px] text-slate-400 italic">
+                * Reemplaza <span className="text-white font-semibold">&lt;tu-servicio&gt;</span> por el nombre real de tu servicio web en Render.
+              </p>
+            </div>
+
+            <div className="bg-[#0b0d14] border border-indigo-500/30 rounded-lg p-3 text-xs space-y-2">
+              <p className="font-semibold text-slate-200">
+                2. En tu panel de Render (Dashboard &gt; Environment):
+              </p>
+              <p className="text-slate-400 text-[11px]">
+                Asegúrate de haber añadido estas variables de entorno en Render:
+              </p>
+              <div className="space-y-1 font-mono text-[11px] bg-[#121520] p-2.5 rounded border border-slate-700">
+                <p><span className="text-[#5865F2]">DISCORD_CLIENT_ID</span>=tu_client_id_de_discord</p>
+                <p><span className="text-[#5865F2]">DISCORD_CLIENT_SECRET</span>=tu_client_secret_de_discord</p>
+                <p><span className="text-[#5865F2]">APP_URL</span>=https://tu-servicio.onrender.com</p>
+              </div>
+            </div>
           </div>
 
           {/* Quick Demo Mode */}

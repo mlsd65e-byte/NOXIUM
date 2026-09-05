@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FeaturedMember } from '../types';
 import { INITIAL_FEATURED_MEMBERS } from '../data/mockData';
 import { safeFetchJson } from '../utils/apiClient';
+import { useDiscordServer } from '../context/DiscordServerContext';
 import {
   Users,
   ShieldCheck,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 
 export const FeaturedMembersSection: React.FC = () => {
+  const { currentGuild } = useDiscordServer();
   const [members, setMembers] = useState<FeaturedMember[]>(INITIAL_FEATURED_MEMBERS);
   const [filter, setFilter] = useState<'all' | 'staff' | 'boosters' | 'creators'>('all');
   const [showNominateModal, setShowNominateModal] = useState(false);
@@ -97,7 +99,7 @@ export const FeaturedMembersSection: React.FC = () => {
             Galería de Miembros Destacados
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Reconociendo a los miembros más activos, boosters leales, staff y creadores que impulsan a Nexus Community.
+            Reconociendo a los miembros más activos, boosters leales, staff y creadores que impulsan a {currentGuild.name}.
           </p>
         </div>
 
