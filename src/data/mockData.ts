@@ -448,39 +448,17 @@ export const INITIAL_TICKETS: SupportTicket[] = [
 ];
 
 export const INITIAL_SERVER_STATS: ServerStats = {
-  totalMembers: 14892,
-  onlineMembers: 3418,
-  voiceActive: 412,
-  serverBoosts: 36,
-  boostTier: 3,
-  messageVelocity: 148, // msgs / min
-  growthRatePercent: 12.4,
-  pingMs: 24,
-  channelActivity: [
-    { channel: '💬 ｜ general-chat', type: 'text', activeCount: 620, messagesToday: 8420 },
-    { channel: '🎮 ｜ buscar-grupo', type: 'text', activeCount: 310, messagesToday: 3190 },
-    { channel: '🔊 ｜ Sala de Voz Principal', type: 'voice', activeCount: 28, messagesToday: 0 },
-    { channel: '🔊 ｜ Squad Alpha (Valorant)', type: 'voice', activeCount: 5, messagesToday: 0 },
-    { channel: '🔊 ｜ Podcast / Stage en Vivo', type: 'voice', activeCount: 142, messagesToday: 0 },
-    { channel: '💻 ｜ programacion-devs', type: 'text', activeCount: 190, messagesToday: 1840 },
-    { channel: '🎨 ｜ capturas-y-clips', type: 'text', activeCount: 240, messagesToday: 950 },
-  ],
-  growthHistory: [
-    { date: 'Lun', members: 14320, online: 3100, messages: 18400, voice: 360 },
-    { date: 'Mar', members: 14450, online: 3210, messages: 19800, voice: 380 },
-    { date: 'Mié', members: 14590, online: 3290, messages: 21400, voice: 405 },
-    { date: 'Jue', members: 14710, online: 3340, messages: 23100, voice: 420 },
-    { date: 'Vie', members: 14820, online: 3650, messages: 29800, voice: 510 },
-    { date: 'Sáb', members: 14870, online: 3890, messages: 34200, voice: 590 },
-    { date: 'Hoy', members: 14892, online: 3418, messages: 26500, voice: 412 },
-  ],
-  rolesDistribution: [
-    { name: 'Miembros Verificados', count: 12450, color: '#5865F2' },
-    { name: 'Server Boosters', count: 36, color: '#f47fff' },
-    { name: 'VIP & Donadores', count: 184, color: '#f0b232' },
-    { name: 'Creadores de Contenido', count: 42, color: '#9146ff' },
-    { name: 'Staff & Moderadores', count: 18, color: '#23a55a' },
-  ],
+  totalMembers: 0,
+  onlineMembers: 0,
+  voiceActive: 0,
+  serverBoosts: 0,
+  boostTier: 0,
+  messageVelocity: 0,
+  growthRatePercent: 0,
+  pingMs: 0,
+  channelActivity: [],
+  growthHistory: [],
+  rolesDistribution: [],
 };
 
 export const INITIAL_MODERATION_LOGS: ModerationLog[] = [

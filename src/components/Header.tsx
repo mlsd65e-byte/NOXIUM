@@ -112,7 +112,13 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                <span>{(currentGuild.onlineCount || 3418).toLocaleString()} en línea</span>
+                {currentGuild.onlineCount > 0 ? (
+                  <span>{currentGuild.onlineCount.toLocaleString()} en línea</span>
+                ) : currentGuild.memberCount > 0 ? (
+                  <span>{currentGuild.memberCount.toLocaleString()} miembros</span>
+                ) : (
+                  <span>Sincronización Discord activa</span>
+                )}
                 <span className="text-slate-600">•</span>
                 <button
                   onClick={copyInvite}

@@ -106,12 +106,20 @@ function AppContent() {
             >
               <HelpCircle className="w-3.5 h-3.5" /> Guía OAuth2
             </button>
-            <span className="text-slate-700">•</span>
-            <span>{(currentGuild.memberCount || 14892).toLocaleString()} Miembros</span>
-            <span className="text-slate-700">•</span>
-            <span className="text-pink-400 flex items-center gap-1">
-              <Flame className="w-3 h-3 fill-current" /> Lvl {currentGuild.boostTier || 3} Nitro
-            </span>
+            {currentGuild.memberCount > 0 && (
+              <>
+                <span className="text-slate-700">•</span>
+                <span>{currentGuild.memberCount.toLocaleString()} Miembros</span>
+              </>
+            )}
+            {currentGuild.boostTier > 0 && (
+              <>
+                <span className="text-slate-700">•</span>
+                <span className="text-pink-400 flex items-center gap-1">
+                  <Flame className="w-3 h-3 fill-current" /> Lvl {currentGuild.boostTier} Nitro
+                </span>
+              </>
+            )}
           </div>
         </div>
       </footer>

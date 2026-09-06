@@ -63,71 +63,56 @@ export const LiveStatsSection: React.FC = () => {
   const [liveStreamBuffer, setLiveStreamBuffer] = useState<TelemetryPoint[]>([]);
 
   // Base dynamic metrics derived from current server or fallback
-  const displayTotalMembers = currentGuild.memberCount || stats.totalMembers || 14892;
-  const displayOnlineMembers = currentGuild.onlineCount || stats.onlineMembers || 3418;
-  const displayVoiceActive = currentGuild.voiceActiveCount || stats.voiceActive || 412;
-  const displayBoostTier = currentGuild.boostTier !== undefined ? currentGuild.boostTier : 3;
-  const displayBoostCount = currentGuild.boostCount !== undefined ? currentGuild.boostCount : 36;
-  const displayVelocity = stats.messageVelocity || 145;
+  const displayTotalMembers = currentGuild.memberCount || stats.totalMembers || 0;
+  const displayOnlineMembers = currentGuild.onlineCount || stats.onlineMembers || 0;
+  const displayVoiceActive = currentGuild.voiceActiveCount || stats.voiceActive || 0;
+  const displayBoostTier = currentGuild.boostTier !== undefined ? currentGuild.boostTier : (stats.boostTier || 0);
+  const displayBoostCount = currentGuild.boostCount !== undefined ? currentGuild.boostCount : (stats.serverBoosts || 0);
+  const displayVelocity = stats.messageVelocity || 0;
 
   // Initialize live stream buffer
   useEffect(() => {
+    if (displayTotalMembers === 0) {
+      setLiveStreamBuffer([]);
+      return;
+    }
     const initialBuffer: TelemetryPoint[] = [];
     const now = Date.now();
-    for (let i = 14; i >= 0; i--) {
-      const timeStamp = new Date(now - i * 3000);
+    for (let i = 10; i >= 0; i--) {
+      const timeStamp = new Date(now - i * 5000);
       const timeStr = timeStamp.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const jitterOnline = Math.floor(Math.sin(i) * 12) + (Math.floor(Math.random() * 8) - 4);
-      const jitterVoice = Math.floor(Math.cos(i) * 6) + (Math.floor(Math.random() * 4) - 2);
-      const jitterMessages = Math.floor(Math.sin(i * 1.5) * 18) + (Math.floor(Math.random() * 10) - 5);
 
       initialBuffer.push({
         time: timeStr,
         members: displayTotalMembers,
-        online: Math.max(5, displayOnlineMembers + jitterOnline),
-        voice: Math.max(1, displayVoiceActive + jitterVoice),
-        messages: Math.max(10, displayVelocity + jitterMessages),
+        online: displayOnlineMembers,
+        voice: displayVoiceActive,
+        messages: displayVelocity,
       });
     }
     setLiveStreamBuffer(initialBuffer);
-  }, [currentGuild.id, displayTotalMembers]);
+  }, [currentGuild.id, displayTotalMembers, displayOnlineMembers, displayVoiceActive, displayVelocity]);
 
-  // Real-time rolling telemetric ticker (updates every 2.5s)
+  // Real-time rolling telemetric ticker when server is connected
   useEffect(() => {
+    if (displayTotalMembers === 0) return;
     const ticker = setInterval(() => {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      
-      const jitterOnline = Math.floor(Math.random() * 9) - 4;
-      const jitterVoice = Math.floor(Math.random() * 5) - 2;
-      const jitterMessages = Math.floor(Math.random() * 13) - 6;
-
-      const newOnline = Math.max(5, displayOnlineMembers + jitterOnline);
-      const newVoice = Math.max(1, displayVoiceActive + jitterVoice);
-      const newVelocity = Math.max(10, displayVelocity + jitterMessages);
 
       setLiveStreamBuffer(prev => {
         const next = [...prev, {
           time: timeStr,
           members: displayTotalMembers,
-          online: newOnline,
-          voice: newVoice,
-          messages: newVelocity,
+          online: displayOnlineMembers,
+          voice: displayVoiceActive,
+          messages: displayVelocity,
         }];
         return next.slice(-18); // keep last 18 ticks for smooth wide chart
       });
 
-      // Also gently keep stats updated in real-time
-      setStats(prev => ({
-        ...prev,
-        onlineMembers: newOnline,
-        voiceActive: newVoice,
-        messageVelocity: newVelocity,
-        pingMs: Math.max(16, Math.min(38, prev.pingMs + (Math.floor(Math.random() * 3) - 1))),
-      }));
-
       setLastUpdated('hace unos segundos');
-    }, 2500);
+    }, 5000);
 
     return () => clearInterval(ticker);
   }, [displayTotalMembers, displayOnlineMembers, displayVoiceActive, displayVelocity]);
@@ -137,7 +122,7 @@ export const LiveStatsSection: React.FC = () => {
     const fetchStats = async () => {
       try {
         const data = await safeFetchJson<ServerStats>('/api/stats/live');
-        if (data && data.totalMembers) {
+        if (data && (data.totalMembers !== undefined || data.onlineMembers !== undefined)) {
           setStats(data);
           setLastUpdated('hace unos segundos');
         }
@@ -153,6 +138,7 @@ export const LiveStatsSection: React.FC = () => {
 
   // 24-Hours dynamic dataset scaled to the actual active server
   const data24h = useMemo(() => {
+    if (displayTotalMembers === 0) return [];
     const points: TelemetryPoint[] = [];
     const hourlyWeights = [
       0.45, 0.38, 0.32, 0.28, 0.25, 0.28, 0.35, 0.48, 
@@ -165,14 +151,13 @@ export const LiveStatsSection: React.FC = () => {
       const hour = (currentHour - i + 24) % 24;
       const hourStr = `${hour.toString().padStart(2, '0')}:00`;
       const weight = hourlyWeights[hour];
-      const memberDeduction = Math.floor((23 - i) * (displayTotalMembers * 0.0004));
       
       points.push({
         time: i === 0 ? 'Ahora' : hourStr,
-        members: Math.max(1, displayTotalMembers - memberDeduction),
-        online: Math.max(2, Math.round(displayOnlineMembers * weight)),
-        voice: Math.max(1, Math.round(displayVoiceActive * weight)),
-        messages: Math.max(5, Math.round(displayVelocity * weight * 1.1)),
+        members: displayTotalMembers,
+        online: Math.round(displayOnlineMembers * weight),
+        voice: Math.round(displayVoiceActive * weight),
+        messages: Math.round(displayVelocity * weight),
       });
     }
     return points;
@@ -180,42 +165,46 @@ export const LiveStatsSection: React.FC = () => {
 
   // 7-Days dynamic dataset scaled to the actual active server
   const data7d = useMemo(() => {
+    if (displayTotalMembers === 0) return [];
+    if (stats.growthHistory && stats.growthHistory.length > 0) {
+      return stats.growthHistory.map(g => ({
+        time: g.date,
+        members: g.members,
+        online: g.online,
+        voice: g.voice,
+        messages: g.messages,
+      }));
+    }
     const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Hoy'];
     const weights = [0.88, 0.91, 0.93, 0.95, 1.04, 1.08, 1.00];
     
     return days.map((day, idx) => {
       const weight = weights[idx];
-      const dayOffset = 6 - idx;
-      const memberDeduction = Math.floor(dayOffset * (displayTotalMembers * 0.0035));
-      
       return {
         time: day,
-        members: Math.max(1, displayTotalMembers - memberDeduction),
-        online: Math.max(2, Math.round(displayOnlineMembers * weight)),
-        voice: Math.max(1, Math.round(displayVoiceActive * weight)),
-        messages: Math.max(10, Math.round(displayVelocity * weight * 15)),
+        members: displayTotalMembers,
+        online: Math.round(displayOnlineMembers * weight),
+        voice: Math.round(displayVoiceActive * weight),
+        messages: Math.round(displayVelocity * weight * 10),
       };
     });
-  }, [displayTotalMembers, displayOnlineMembers, displayVoiceActive, displayVelocity]);
+  }, [displayTotalMembers, displayOnlineMembers, displayVoiceActive, displayVelocity, stats.growthHistory]);
 
   // 30-Days dynamic dataset scaled to the actual active server
   const data30d = useMemo(() => {
+    if (displayTotalMembers === 0) return [];
     const points: TelemetryPoint[] = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const label = i === 0 ? 'Hoy' : `${d.getDate()} ${d.toLocaleString('es-ES', { month: 'short' })}`;
-      // Organic progressive curve
-      const progress = (30 - i) / 30;
-      const growthFactor = 0.92 + progress * 0.08;
-      const weekendBoost = (d.getDay() === 0 || d.getDay() === 6) ? 1.08 : 0.95;
       
       points.push({
         time: label,
-        members: Math.max(1, Math.round(displayTotalMembers * growthFactor)),
-        online: Math.max(2, Math.round(displayOnlineMembers * weekendBoost * (0.85 + Math.random() * 0.2))),
-        voice: Math.max(1, Math.round(displayVoiceActive * weekendBoost * (0.85 + Math.random() * 0.2))),
-        messages: Math.max(10, Math.round(displayVelocity * weekendBoost * (12 + Math.random() * 4))),
+        members: displayTotalMembers,
+        online: displayOnlineMembers,
+        voice: displayVoiceActive,
+        messages: displayVelocity * 10,
       });
     }
     return points;
@@ -223,6 +212,7 @@ export const LiveStatsSection: React.FC = () => {
 
   // Active chart dataset based on selected range
   const currentChartData = useMemo(() => {
+    if (displayTotalMembers === 0) return [];
     switch (activeRange) {
       case 'live':
         return liveStreamBuffer;
@@ -235,20 +225,20 @@ export const LiveStatsSection: React.FC = () => {
       default:
         return data7d;
     }
-  }, [activeRange, liveStreamBuffer, data24h, data7d, data30d]);
+  }, [activeRange, liveStreamBuffer, data24h, data7d, data30d, displayTotalMembers]);
 
   // Derive channels from real Discord server if available
   const displayChannels = useMemo(() => {
     if (currentGuild.channels && currentGuild.channels.length > 0) {
       return currentGuild.channels.map(ch => ({
         channel: ch.name,
-        activeCount: ch.type === 2 ? Math.max(1, Math.floor(displayVoiceActive / 4) + 1) : Math.max(3, Math.floor(displayOnlineMembers * 0.03)),
-        messagesToday: ch.type === 2 ? 0 : Math.floor(displayVelocity * 12) + 240,
+        activeCount: 0,
+        messagesToday: 0,
         type: (ch.type === 2 ? 'voice' : 'text') as 'voice' | 'text',
       }));
     }
-    return stats.channelActivity;
-  }, [currentGuild.channels, stats.channelActivity, displayVoiceActive, displayOnlineMembers, displayVelocity]);
+    return stats.channelActivity || [];
+  }, [currentGuild.channels, stats.channelActivity]);
 
   const filteredChannels = useMemo(() => {
     if (channelFilter === 'text') return displayChannels.filter(c => c.type === 'text');
@@ -259,14 +249,14 @@ export const LiveStatsSection: React.FC = () => {
   // Derive roles from real Discord server if available
   const displayRoles = useMemo(() => {
     if (currentGuild.roles && currentGuild.roles.length > 0) {
-      return currentGuild.roles.slice(0, 6).map(r => ({
+      return currentGuild.roles.slice(0, 8).map(r => ({
         name: r.name,
-        count: r.membersCount || Math.max(1, Math.floor(displayTotalMembers / (currentGuild.roles?.length || 5))),
+        count: r.membersCount || 0,
         color: r.hexColor && r.hexColor !== '#000000' ? r.hexColor : '#5865F2',
       }));
     }
-    return stats.rolesDistribution;
-  }, [currentGuild.roles, stats.rolesDistribution, displayTotalMembers]);
+    return stats.rolesDistribution || [];
+  }, [currentGuild.roles, stats.rolesDistribution]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -337,12 +327,16 @@ export const LiveStatsSection: React.FC = () => {
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-extrabold text-white">NIVEL {displayBoostTier}</span>
+                  <span className="text-sm font-extrabold text-white">
+                    {displayBoostTier > 0 ? `NIVEL ${displayBoostTier}` : 'NIVEL 0'}
+                  </span>
                   <span className="text-[10px] bg-pink-500/30 text-pink-300 font-bold px-1.5 py-0.5 rounded">
                     {displayBoostCount} Boosts
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">Audio 384kbps • Vanity URL</p>
+                <p className="text-[11px] text-slate-400">
+                  {displayBoostTier > 0 ? `Nivel ${displayBoostTier} Nitro activo` : 'Sin nivel Nitro'}
+                </p>
               </div>
             </div>
 
@@ -352,9 +346,11 @@ export const LiveStatsSection: React.FC = () => {
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-extrabold text-white">{stats.pingMs} ms</span>
+                  <span className="text-sm font-extrabold text-white">
+                    {stats.pingMs > 0 ? `${stats.pingMs} ms` : 'Conectado'}
+                  </span>
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded">
-                    Óptimo
+                    {currentGuild.isRealData ? 'En Vivo' : 'API Lista'}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400">Discord Gateway API</p>
@@ -381,7 +377,11 @@ export const LiveStatsSection: React.FC = () => {
           </div>
           <div className="mt-2 flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>+{stats.growthRatePercent || 4.2}% este mes</span>
+            <span>
+              {stats.growthRatePercent > 0
+                ? `+${stats.growthRatePercent}% este mes`
+                : 'Telemetría del servidor'}
+            </span>
           </div>
         </div>
 
@@ -397,14 +397,16 @@ export const LiveStatsSection: React.FC = () => {
             <span className="text-2xl sm:text-3xl font-black text-white font-mono">
               {displayOnlineMembers.toLocaleString()}
             </span>
-            <span className="flex h-2.5 w-2.5 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
+            {displayOnlineMembers > 0 && (
+              <span className="flex h-2.5 w-2.5 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+            )}
           </div>
           <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-400">
             <span>
-              {displayTotalMembers > 0
+              {displayTotalMembers > 0 && displayOnlineMembers > 0
                 ? `${((displayOnlineMembers / displayTotalMembers) * 100).toFixed(1)}% de presencia simultánea`
                 : 'Conectados actualmente'}
             </span>
@@ -426,9 +428,9 @@ export const LiveStatsSection: React.FC = () => {
           </div>
           <div className="mt-2 flex items-center gap-1 text-[11px] text-purple-400">
             <span>
-              {currentGuild.channels
-                ? `En ${currentGuild.channels.filter(c => c.type === 2).length || 1} salas de voz`
-                : 'En canales de voz activos'}
+              {currentGuild.channels && currentGuild.channels.filter(c => c.type === 2).length > 0
+                ? `En ${currentGuild.channels.filter(c => c.type === 2).length} salas de voz`
+                : 'En salas de voz'}
             </span>
           </div>
         </div>
@@ -443,13 +445,13 @@ export const LiveStatsSection: React.FC = () => {
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-black text-white font-mono">
-              {stats.messageVelocity || displayVelocity}
+              {displayVelocity}
             </span>
             <span className="text-xs text-slate-400 font-mono">msgs/min</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-[11px] text-amber-400">
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>Actividad fluida en chat</span>
+            <span>Flujo de mensajería</span>
           </div>
         </div>
       </div>
@@ -561,100 +563,116 @@ export const LiveStatsSection: React.FC = () => {
           </div>
 
           {/* Area Chart with Responsive Container */}
-          <div className="h-72 w-full mt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={currentChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorMembers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#5865F2" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#5865F2" stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="colorOnline" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.45} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="colorMessages" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.45} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="colorVoice" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.45} />
-                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e2235" vertical={false} />
-                <XAxis
-                  dataKey="time"
-                  stroke="#64748b"
-                  fontSize={11}
-                  tickLine={false}
-                  interval={activeRange === 'live' ? 3 : activeRange === '30d' ? 4 : 0}
-                />
-                <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#161826',
-                    borderColor: '#334155',
-                    borderRadius: '12px',
-                    color: '#fff',
-                    fontSize: '12px',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
-                  }}
-                  formatter={(val: any, name: any) => {
-                    const num = typeof val === 'number' ? val.toLocaleString() : val;
-                    return [num, name];
-                  }}
-                />
-                {metricView === 'presence' ? (
-                  <>
-                    <Area
-                      type="monotone"
-                      dataKey="members"
-                      name="Miembros Totales"
-                      stroke="#5865F2"
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#colorMembers)"
-                      isAnimationActive={activeRange !== 'live'}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="online"
-                      name="Usuarios en Línea"
-                      stroke="#10b981"
-                      strokeWidth={2.5}
-                      fillOpacity={1}
-                      fill="url(#colorOnline)"
-                      isAnimationActive={activeRange !== 'live'}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Area
-                      type="monotone"
-                      dataKey="messages"
-                      name="Mensajes en Chat"
-                      stroke="#f59e0b"
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#colorMessages)"
-                      isAnimationActive={activeRange !== 'live'}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="voice"
-                      name="En Salas de Voz"
-                      stroke="#a855f7"
-                      strokeWidth={2.5}
-                      fillOpacity={1}
-                      fill="url(#colorVoice)"
-                      isAnimationActive={activeRange !== 'live'}
-                    />
-                  </>
-                )}
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {currentChartData.length === 0 || displayTotalMembers === 0 ? (
+            <div className="h-72 w-full mt-2 flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-800/80 rounded-xl bg-slate-950/40">
+              <Radio className="w-10 h-10 text-[#5865F2] mb-3 opacity-80" />
+              <h4 className="text-sm font-bold text-white mb-1">Sin datos telemétricos</h4>
+              <p className="text-xs text-slate-400 max-w-sm mb-4">
+                Conecta tu servidor de Discord mediante tu Bot Token o Widget para visualizar la evolución de miembros y actividad en tiempo real.
+              </p>
+              <button
+                onClick={() => setShowServerModal(true)}
+                className="px-4 py-2 rounded-xl bg-[#5865F2] hover:bg-[#4752c4] text-white text-xs font-bold transition flex items-center gap-2"
+              >
+                <Sliders className="w-4 h-4" /> Configurar Servidor
+              </button>
+            </div>
+          ) : (
+            <div className="h-72 w-full mt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={currentChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorMembers" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#5865F2" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#5865F2" stopOpacity={0.0} />
+                    </linearGradient>
+                    <linearGradient id="colorOnline" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.45} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="colorMessages" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.45} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="colorVoice" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.45} />
+                      <stop offset="95%" stopColor="#a855f7" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e2235" vertical={false} />
+                  <XAxis
+                    dataKey="time"
+                    stroke="#64748b"
+                    fontSize={11}
+                    tickLine={false}
+                    interval={activeRange === 'live' ? 3 : activeRange === '30d' ? 4 : 0}
+                  />
+                  <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#161826',
+                      borderColor: '#334155',
+                      borderRadius: '12px',
+                      color: '#fff',
+                      fontSize: '12px',
+                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                    }}
+                    formatter={(val: any, name: any) => {
+                      const num = typeof val === 'number' ? val.toLocaleString() : val;
+                      return [num, name];
+                    }}
+                  />
+                  {metricView === 'presence' ? (
+                    <>
+                      <Area
+                        type="monotone"
+                        dataKey="members"
+                        name="Miembros Totales"
+                        stroke="#5865F2"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorMembers)"
+                        isAnimationActive={activeRange !== 'live'}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="online"
+                        name="Usuarios en Línea"
+                        stroke="#10b981"
+                        strokeWidth={2.5}
+                        fillOpacity={1}
+                        fill="url(#colorOnline)"
+                        isAnimationActive={activeRange !== 'live'}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Area
+                        type="monotone"
+                        dataKey="messages"
+                        name="Mensajes en Chat"
+                        stroke="#f59e0b"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorMessages)"
+                        isAnimationActive={activeRange !== 'live'}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="voice"
+                        name="En Salas de Voz"
+                        stroke="#a855f7"
+                        strokeWidth={2.5}
+                        fillOpacity={1}
+                        fill="url(#colorVoice)"
+                        isAnimationActive={activeRange !== 'live'}
+                      />
+                    </>
+                  )}
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
 
           <div className="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-800/80 mt-2">
             <div className="flex items-center gap-4">
@@ -701,47 +719,59 @@ export const LiveStatsSection: React.FC = () => {
             </p>
           </div>
 
-          <div className="h-56 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={displayRoles}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={75}
-                  paddingAngle={5}
-                  dataKey="count"
-                >
-                  {displayRoles.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#161826',
-                    borderColor: '#334155',
-                    borderRadius: '10px',
-                    color: '#fff',
-                    fontSize: '12px',
-                  }}
-                  formatter={(val: any) => [typeof val === 'number' ? val.toLocaleString() : val, 'Miembros']}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="space-y-1.5 mt-2">
-            {displayRoles.map(role => (
-              <div key={role.name} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: role.color }}></span>
-                  <span className="text-slate-300 font-medium truncate max-w-[140px]">{role.name}</span>
-                </div>
-                <span className="text-slate-400 font-mono">{role.count.toLocaleString()}</span>
+          {displayRoles.length === 0 || displayRoles.every(r => r.count === 0) ? (
+            <div className="h-56 w-full flex flex-col items-center justify-center text-center p-4 border border-dashed border-slate-800/80 rounded-xl bg-slate-950/30">
+              <Shield className="w-8 h-8 text-slate-600 mb-2" />
+              <p className="text-xs font-semibold text-slate-300">Sin roles sincronizados</p>
+              <p className="text-[11px] text-slate-500 mt-1 max-w-[200px]">
+                Conecta el bot para cargar roles de tu servidor
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="h-56 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={displayRoles}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={75}
+                      paddingAngle={5}
+                      dataKey="count"
+                    >
+                      {displayRoles.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#161826',
+                        borderColor: '#334155',
+                        borderRadius: '10px',
+                        color: '#fff',
+                        fontSize: '12px',
+                      }}
+                      formatter={(val: any) => [typeof val === 'number' ? val.toLocaleString() : val, 'Miembros']}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            ))}
-          </div>
+
+              <div className="space-y-1.5 mt-2">
+                {displayRoles.map(role => (
+                  <div key={role.name} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: role.color }}></span>
+                      <span className="text-slate-300 font-medium truncate max-w-[140px]">{role.name}</span>
+                    </div>
+                    <span className="text-slate-400 font-mono">{role.count.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -794,39 +824,49 @@ export const LiveStatsSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filteredChannels.map((ch, idx) => (
-            <div
-              key={idx}
-              className="bg-[#11131e] border border-slate-800/80 hover:border-slate-700 rounded-xl p-3.5 flex items-center justify-between transition"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                    ch.type === 'voice' ? 'bg-purple-500/15 text-purple-400' : 'bg-indigo-500/15 text-indigo-400'
-                  }`}
-                >
-                  {ch.type === 'voice' ? <Mic className="w-4 h-4" /> : <Hash className="w-4 h-4" />}
+        {filteredChannels.length === 0 ? (
+          <div className="p-8 text-center border border-dashed border-slate-800/80 rounded-xl bg-slate-950/30">
+            <Volume2 className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+            <p className="text-xs font-semibold text-slate-300">No hay canales sincronizados todavía</p>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Conecta tu servidor de Discord para listar salas de texto y canales de voz
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filteredChannels.map((ch, idx) => (
+              <div
+                key={idx}
+                className="bg-[#11131e] border border-slate-800/80 hover:border-slate-700 rounded-xl p-3.5 flex items-center justify-between transition"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      ch.type === 'voice' ? 'bg-purple-500/15 text-purple-400' : 'bg-indigo-500/15 text-indigo-400'
+                    }`}
+                  >
+                    {ch.type === 'voice' ? <Mic className="w-4 h-4" /> : <Hash className="w-4 h-4" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-200 truncate">
+                      {ch.type === 'text' && !ch.channel.startsWith('#') ? `#${ch.channel}` : ch.channel}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {ch.type === 'voice' ? 'Canal de Voz / Conectados' : `${ch.messagesToday.toLocaleString()} mensajes hoy`}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-200 truncate">
-                    {ch.type === 'text' && !ch.channel.startsWith('#') ? `#${ch.channel}` : ch.channel}
-                  </p>
-                  <p className="text-[10px] text-slate-400">
-                    {ch.type === 'voice' ? 'Canal de Voz / Conectados' : `${ch.messagesToday.toLocaleString()} mensajes hoy`}
-                  </p>
-                </div>
-              </div>
 
-              <div className="text-right shrink-0">
-                <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-                  <Users className="w-3 h-3" />
-                  {ch.activeCount}
-                </span>
+                <div className="text-right shrink-0">
+                  <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                    <Users className="w-3 h-3" />
+                    {ch.activeCount}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

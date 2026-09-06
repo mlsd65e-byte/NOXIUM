@@ -31,35 +31,26 @@ interface DiscordServerContextType {
 }
 
 const DEFAULT_GUILD: DiscordGuildData = {
-  id: 'nexus_default',
-  name: 'Nexus Community',
+  id: '',
+  name: 'Servidor Discord',
   icon: null,
   iconUrl: 'https://cdn.discordapp.com/embed/avatars/0.png',
-  description: 'Comunidad principal de Discord sincronizada en tiempo real.',
+  description: 'Conecta tu bot o ingresa el ID de tu servidor para sincronizar métricas en tiempo real.',
   splash: null,
   banner: null,
-  memberCount: 14892,
-  onlineCount: 3418,
-  voiceActiveCount: 412,
-  boostTier: 3,
-  boostCount: 36,
-  isRealData: true,
+  memberCount: 0,
+  onlineCount: 0,
+  voiceActiveCount: 0,
+  boostTier: 0,
+  boostCount: 0,
+  isRealData: false,
   source: 'discord_bot_api',
-  instantInvite: 'https://discord.gg/nexus-community',
-  channels: [
-    { id: 'c1', name: 'general-chat', type: 0, position: 1 },
-    { id: 'c2', name: 'buscar-grupo', type: 0, position: 2 },
-    { id: 'c3', name: 'Sala de Voz Principal', type: 2, position: 3 },
-    { id: 'c4', name: 'programacion-devs', type: 0, position: 4 },
-  ],
-  roles: [
-    { id: 'r1', name: 'Staff & Admin', color: 0xe01e5a, hexColor: '#e01e5a', position: 1, membersCount: 18 },
-    { id: 'r2', name: 'Server Booster', color: 0xf47fff, hexColor: '#f47fff', position: 2, membersCount: 36 },
-    { id: 'r3', name: 'Miembro', color: 0x5865f2, hexColor: '#5865f2', position: 3, membersCount: 12450 },
-  ],
+  instantInvite: '',
+  channels: [],
+  roles: [],
   members: [],
   emojis: [],
-  lastSyncedAt: new Date().toISOString(),
+  lastSyncedAt: null,
 };
 
 const DiscordServerContext = createContext<DiscordServerContextType | undefined>(undefined);

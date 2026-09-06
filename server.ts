@@ -47,35 +47,26 @@ let moderationLogs: ModerationLog[] = JSON.parse(JSON.stringify(INITIAL_MODERATI
 // Real Discord Server state
 let activeGuildId: string = process.env.DISCORD_GUILD_ID || '';
 let currentGuildData: DiscordGuildData = {
-  id: activeGuildId || 'nexus_default',
-  name: 'Nexus Community',
+  id: activeGuildId || '',
+  name: activeGuildId ? 'Servidor Discord' : 'Servidor Discord',
   icon: null,
   iconUrl: 'https://cdn.discordapp.com/embed/avatars/0.png',
-  description: 'Comunidad de Discord sincronizada en tiempo real.',
+  description: 'Conecta tu bot o ingresa el ID de tu servidor para sincronizar métricas en tiempo real.',
   splash: null,
   banner: null,
-  memberCount: 14892,
-  onlineCount: 3418,
-  voiceActiveCount: 412,
-  boostTier: 3,
-  boostCount: 36,
-  isRealData: true,
+  memberCount: 0,
+  onlineCount: 0,
+  voiceActiveCount: 0,
+  boostTier: 0,
+  boostCount: 0,
+  isRealData: false,
   source: 'discord_bot_api',
-  instantInvite: 'https://discord.gg/nexus-community',
-  channels: [
-    { id: 'c1', name: 'general-chat', type: 0, position: 1 },
-    { id: 'c2', name: 'buscar-grupo', type: 0, position: 2 },
-    { id: 'c3', name: 'Sala de Voz Principal', type: 2, position: 3 },
-    { id: 'c4', name: 'programacion-devs', type: 0, position: 4 },
-  ],
-  roles: [
-    { id: 'r1', name: 'Staff & Admin', color: 0xe01e5a, hexColor: '#e01e5a', position: 1, membersCount: 18 },
-    { id: 'r2', name: 'Server Booster', color: 0xf47fff, hexColor: '#f47fff', position: 2, membersCount: 36 },
-    { id: 'r3', name: 'Miembro', color: 0x5865f2, hexColor: '#5865f2', position: 3, membersCount: 12450 },
-  ],
+  instantInvite: '',
+  channels: [],
+  roles: [],
   members: [],
   emojis: [],
-  lastSyncedAt: new Date().toISOString(),
+  lastSyncedAt: null,
 };
 
 // Helper para obtener Client ID y URL de invitación del Bot
@@ -433,20 +424,9 @@ if (process.env.DISCORD_GUILD_ID) {
   syncDiscordGuildData(process.env.DISCORD_GUILD_ID).catch(console.error);
 }
 
-// Periodic live jitter solo si NO hay datos reales de Discord
+// Re-sincronizar periódicamente cada 45 segundos con la API oficial si hay un servidor activo
 setInterval(() => {
-  if (!currentGuildData.isRealData) {
-    const deltaOnline = Math.floor(Math.random() * 9) - 4;
-    const deltaVoice = Math.floor(Math.random() * 5) - 2;
-    const deltaVelocity = Math.floor(Math.random() * 11) - 5;
-    const deltaPing = Math.floor(Math.random() * 5) - 2;
-
-    serverStats.onlineMembers = Math.max(20, serverStats.onlineMembers + deltaOnline);
-    serverStats.voiceActive = Math.max(5, serverStats.voiceActive + deltaVoice);
-    serverStats.messageVelocity = Math.max(20, Math.min(260, serverStats.messageVelocity + deltaVelocity));
-    serverStats.pingMs = Math.max(16, Math.min(45, serverStats.pingMs + deltaPing));
-  } else if (activeGuildId && (process.env.DISCORD_BOT_TOKEN || currentGuildData.source === 'discord_widget')) {
-    // Re-sincronizar periódicamente cada 45 segundos con la API oficial
+  if (activeGuildId && (process.env.DISCORD_BOT_TOKEN || currentGuildData.source === 'discord_widget')) {
     syncDiscordGuildData(activeGuildId).catch(console.error);
   }
 }, 45000);
@@ -869,11 +849,11 @@ app.post('/api/admin/clear-mock-data', (req, res) => {
 
 // Server stats in real-time
 app.get('/api/stats/live', (req, res) => {
-  serverStats.totalMembers = currentGuildData.memberCount || 14892;
-  serverStats.onlineMembers = currentGuildData.onlineCount || 3418;
-  serverStats.voiceActive = currentGuildData.voiceActiveCount || 412;
-  serverStats.boostTier = currentGuildData.boostTier ?? 3;
-  serverStats.serverBoosts = currentGuildData.boostCount ?? 36;
+  serverStats.totalMembers = currentGuildData.memberCount || 0;
+  serverStats.onlineMembers = currentGuildData.onlineCount || 0;
+  serverStats.voiceActive = currentGuildData.voiceActiveCount || 0;
+  serverStats.boostTier = currentGuildData.boostTier ?? 0;
+  serverStats.serverBoosts = currentGuildData.boostCount ?? 0;
   res.json(serverStats);
 });
 
