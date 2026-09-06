@@ -9,7 +9,6 @@ import {
   INITIAL_TICKETS,
   INITIAL_SERVER_STATS,
   INITIAL_MODERATION_LOGS,
-  DEMO_USERS,
 } from './src/data/mockData.ts';
 import {
   Poll,
@@ -701,7 +700,6 @@ app.get(['/api/auth/discord/callback', '/api/auth/discord/callback/'], async (re
       status: 'online',
       canModerate,
       canPostPolls,
-      isDemoUser: false,
       guilds: userGuilds,
     };
 
@@ -758,7 +756,7 @@ app.get(['/api/auth/discord/callback', '/api/auth/discord/callback/'], async (re
         <body style="background:#0f1117;color:#f87171;font-family:sans-serif;text-align:center;padding:50px;">
           <h2>Error al conectar con Discord</h2>
           <p>${error.message || 'Ocurrió un error inesperado'}</p>
-          <p style="color:#94a3b8;font-size:14px;">Puedes usar el selector de perfiles de demostración en el portal.</p>
+          <p style="color:#94a3b8;font-size:14px;">Verifica tus credenciales en el archivo .env o en el panel de Render.</p>
           <button onclick="window.close()" style="background:#5865F2;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;margin-top:20px;">Cerrar Ventana</button>
         </body>
       </html>
@@ -853,7 +851,7 @@ app.post('/api/discord/guild/sync', async (req, res) => {
   }
 });
 
-// Limpiar datos falsos de demostración para dejar únicamente datos reales
+// Restablecer o vaciar registros iniciales
 app.post('/api/admin/clear-mock-data', (req, res) => {
   polls = polls.filter(p => !p.id.startsWith('poll_1') && !p.id.startsWith('poll_2') && !p.id.startsWith('poll_3'));
   tickets = tickets.filter(t => !t.id.startsWith('tkt_1') && !t.id.startsWith('tkt_2') && !t.id.startsWith('tkt_3'));
@@ -861,7 +859,7 @@ app.post('/api/admin/clear-mock-data', (req, res) => {
   moderationLogs = moderationLogs.filter(l => !l.id.startsWith('log_1') && !l.id.startsWith('log_2') && !l.id.startsWith('log_3'));
   res.json({
     success: true,
-    message: 'Datos de prueba eliminados. El panel ahora está limpio para datos reales.',
+    message: 'Registros iniciales restablecidos correctamente.',
   });
 });
 
@@ -1273,11 +1271,6 @@ app.patch('/api/tickets/:id/status', (req, res) => {
 // Moderation Logs
 app.get('/api/moderation/logs', (req, res) => {
   res.json(moderationLogs);
-});
-
-// Demo profiles
-app.get('/api/demo-users', (req, res) => {
-  res.json(DEMO_USERS);
 });
 
 // Prevent unhandled /api/* requests from falling through to Vite's index.html fallback

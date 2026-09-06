@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { DiscordUser, DiscordRole } from '../types';
-import { DEMO_USERS } from '../data/mockData';
 import { safeFetchJson } from '../utils/apiClient';
 
 interface OAuthConfig {
@@ -10,10 +9,22 @@ interface OAuthConfig {
   appUrl: string;
 }
 
+export const GUEST_USER: DiscordUser = {
+  id: 'guest',
+  username: 'Invitado',
+  global_name: 'Invitado',
+  avatar: 'https://cdn.discordapp.com/embed/avatars/0.png',
+  roles: ['Miembro'],
+  joinedAt: new Date().toISOString(),
+  status: 'offline',
+  customStatus: 'Navegando como visitante',
+  canModerate: false,
+  canPostPolls: false,
+};
+
 interface AuthContextType {
   currentUser: DiscordUser;
-  demoUsers: DiscordUser[];
-  switchUser: (userId: string) => void;
+  isAuthenticated: boolean;
   loginWithDiscord: (overrideRedirectUri?: string) => Promise<void>;
   logout: () => void;
   oauthConfig: OAuthConfig | null;
@@ -21,8 +32,6 @@ interface AuthContextType {
   hasRole: (role: DiscordRole) => boolean;
   canModerate: boolean;
   canPostPolls: boolean;
-  showDemoModal: boolean;
-  setShowDemoModal: (show: boolean) => void;
   showOAuthModal: boolean;
   setShowOAuthModal: (show: boolean) => void;
 }
@@ -30,26 +39,32 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Default to Alex (Admin) so the user can immediately experience all features including the Admin Panel
   const [currentUser, setCurrentUser] = useState<DiscordUser>(() => {
     const saved = localStorage.getItem('nexus_discord_user');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Ensure old demo users are purged from localStorage
+        if (parsed && parsed.id && !parsed.id.startsWith('user_admin') && !parsed.id.startsWith('user_mod') && !parsed.id.startsWith('user_booster') && !parsed.id.startsWith('user_member')) {
+          return parsed;
+        }
       } catch (e) {
         console.error(e);
       }
     }
-    return DEMO_USERS[0]; // Admin by default
+    return GUEST_USER;
   });
 
   const [oauthConfig, setOauthConfig] = useState<OAuthConfig | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(false);
-  const [showDemoModal, setShowDemoModal] = useState(false);
   const [showOAuthModal, setShowOAuthModal] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('nexus_discord_user', JSON.stringify(currentUser));
+    if (currentUser.id !== 'guest') {
+      localStorage.setItem('nexus_discord_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('nexus_discord_user');
+    }
   }, [currentUser]);
 
   // Fetch OAuth config from server
@@ -70,7 +85,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Listen for Discord OAuth popup success message
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // Validate origin if needed
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS' && event.data?.user) {
         setCurrentUser(event.data.user);
         setIsLoadingAuth(false);
@@ -79,13 +93,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
-
-  const switchUser = (userId: string) => {
-    const found = DEMO_USERS.find(u => u.id === userId);
-    if (found) {
-      setCurrentUser(found);
-    }
-  };
 
   const loginWithDiscord = async (overrideRedirectUri?: string) => {
     setIsLoadingAuth(true);
@@ -132,14 +139,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    // Reset to demo member
-    setCurrentUser(DEMO_USERS[3]);
+    localStorage.removeItem('nexus_discord_user');
+    setCurrentUser(GUEST_USER);
   };
 
   const hasRole = (role: DiscordRole) => {
     return currentUser.roles.includes(role);
   };
 
+  const isAuthenticated = currentUser.id !== 'guest';
   const canModerate = currentUser.canModerate || currentUser.roles.includes('Admin') || currentUser.roles.includes('Moderador');
   const canPostPolls = currentUser.canPostPolls || currentUser.roles.includes('Admin') || currentUser.roles.includes('Moderador');
 
@@ -147,8 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         currentUser,
-        demoUsers: DEMO_USERS,
-        switchUser,
+        isAuthenticated,
         loginWithDiscord,
         logout,
         oauthConfig,
@@ -156,8 +163,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hasRole,
         canModerate,
         canPostPolls,
-        showDemoModal,
-        setShowDemoModal,
         showOAuthModal,
         setShowOAuthModal,
       }}

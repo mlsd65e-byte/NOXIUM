@@ -1,64 +1,5 @@
 import { DiscordUser, Poll, FeaturedMember, ConfigPreset, SupportTicket, ServerStats, ModerationLog } from '../types';
 
-export const DEMO_USERS: DiscordUser[] = [
-  {
-    id: 'user_admin_1',
-    username: 'Alex_Admin',
-    global_name: 'Alex [Owner]',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    bannerColor: '#5865F2',
-    roles: ['Admin'],
-    joinedAt: '2022-01-15',
-    status: 'online',
-    customStatus: '👑 Gestionando la comunidad Nexus',
-    canModerate: true,
-    canPostPolls: true,
-    isDemoUser: true,
-  },
-  {
-    id: 'user_mod_2',
-    username: 'Elena_Valkyrie',
-    global_name: 'Elena (Staff Mod)',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-    bannerColor: '#23a55a',
-    roles: ['Moderador'],
-    joinedAt: '2022-06-10',
-    status: 'dnd',
-    customStatus: '🛡️ Revisando reportes y configuraciones',
-    canModerate: true,
-    canPostPolls: true,
-    isDemoUser: true,
-  },
-  {
-    id: 'user_booster_3',
-    username: 'Kael_Nitro',
-    global_name: 'Kael | 18x Booster',
-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-    bannerColor: '#f47fff',
-    roles: ['Booster', 'VIP'],
-    joinedAt: '2023-02-01',
-    status: 'idle',
-    customStatus: '✨ Nivel 3 Booster del servidor',
-    canModerate: false,
-    canPostPolls: false,
-    isDemoUser: true,
-  },
-  {
-    id: 'user_member_4',
-    username: 'Lucas_Gamer99',
-    global_name: 'Lucas G.',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    bannerColor: '#7289da',
-    roles: ['Miembro'],
-    joinedAt: '2023-11-20',
-    status: 'online',
-    customStatus: '🎮 Buscando squad para fin de semana',
-    canModerate: false,
-    canPostPolls: false,
-    isDemoUser: true,
-  },
-];
-
 export const INITIAL_POLLS: Poll[] = [
   {
     id: 'poll_1',
@@ -411,7 +352,7 @@ export const INITIAL_CONFIG_PRESETS: ConfigPreset[] = [
     downloads: 650,
     likes: 122,
     dislikes: 5,
-    status: 'pending', // Pending for moderation demo!
+    status: 'pending',
     createdAt: '2026-09-03T11:45:00Z',
     tags: ['CSS', 'Vencord', 'BetterDiscord', 'Theme'],
     version: '1.0.0',

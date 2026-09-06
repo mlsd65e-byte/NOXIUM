@@ -183,7 +183,7 @@ export const DiscordServerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // Limpiar datos demo falsos
+  // Limpiar registros iniciales
   const clearMockData = async (): Promise<boolean> => {
     try {
       const res = await safeFetchJson<{ success: boolean; message: string }>(

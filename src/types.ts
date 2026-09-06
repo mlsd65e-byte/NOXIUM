@@ -13,7 +13,6 @@ export interface DiscordUser {
   customStatus?: string;
   canModerate: boolean;
   canPostPolls: boolean;
-  isDemoUser?: boolean;
   guilds?: {
     id: string;
     name: string;

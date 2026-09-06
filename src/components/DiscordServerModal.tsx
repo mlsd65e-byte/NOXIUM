@@ -246,7 +246,7 @@ export const DiscordServerModal: React.FC = () => {
                     <p className="text-xs text-slate-300">
                       {isRealData
                         ? `Mostrando métricas reales de "${currentGuild.name}". Sincronizado: ${lastSyncedAt || 'hace un momento'}.`
-                        : 'Actualmente se muestran datos de prueba. Para vincular tu servidor, invítalo con el enlace de autorización o añade tus variables en Render.'}
+                        : 'Servidor comunitario activo. Para vincular tu propio servidor, ingresa el ID abajo o añade tus variables en Render.'}
                     </p>
                   </div>
                 </div>

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { X, ExternalLink, Copy, Check, Key, Sparkles, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export const DiscordAuthModal: React.FC = () => {
-  const { showOAuthModal, setShowOAuthModal, oauthConfig, switchUser, demoUsers, loginWithDiscord } = useAuth();
+  const { showOAuthModal, setShowOAuthModal, oauthConfig, loginWithDiscord } = useAuth();
   const [copiedCurrent, setCopiedCurrent] = useState(false);
   const [copiedAll, setCopiedAll] = useState(false);
   const [selectedRedirect, setSelectedRedirect] = useState<string>('');
