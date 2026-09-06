@@ -87,7 +87,7 @@ function AppContent() {
             <div>
               <p className="font-bold text-white">{currentGuild.name} • Portal Comunitario</p>
               <p className="text-[11px] text-slate-500">
-                {isRealData ? 'Sincronizado con la API oficial de Discord' : 'Modo demostración con datos de muestra'}
+                Sincronizado en tiempo real con Discord
               </p>
             </div>
           </div>

@@ -190,37 +190,6 @@ export const DiscordAuthModal: React.FC = () => {
               </div>
             </div>
           </div>
-
-          {/* Quick Demo Mode */}
-          <div className="bg-[#1f2438] border border-[#5865F2]/30 rounded-xl p-4 flex gap-3">
-            <Sparkles className="w-5 h-5 text-[#5865F2] shrink-0 mt-0.5" />
-            <div className="space-y-2 flex-1">
-              <div>
-                <p className="font-semibold text-white">¿Prefieres no configurar Discord ahora?</p>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Puedes entrar inmediatamente con perfiles simulados (Admin, Mod, Booster) para probar todas las funciones:
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {demoUsers.map(user => (
-                  <button
-                    key={user.id}
-                    onClick={() => {
-                      switchUser(user.id);
-                      setShowOAuthModal(false);
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-[#282d44] hover:bg-[#343a57] text-xs font-medium text-white flex items-center gap-2 border border-slate-600/40 transition"
-                  >
-                    <img src={user.avatar} alt={user.username} className="w-4 h-4 rounded-full" />
-                    <span>{user.global_name || user.username}</span>
-                    <span className="text-[10px] px-1.5 py-0.2 bg-[#5865F2]/40 rounded text-indigo-200">
-                      {user.roles[0]}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}

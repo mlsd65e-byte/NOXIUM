@@ -79,6 +79,9 @@ export interface DiscordGuildData {
   members: DiscordGuildMember[];
   emojis: { id: string; name: string; animated?: boolean; url: string }[];
   lastSyncedAt?: string;
+  syncError?: string | null;
+  botStatus?: 'connected' | 'not_in_server' | 'unauthorized' | 'not_configured';
+  botInviteUrl?: string | null;
 }
 
 export interface PollOption {

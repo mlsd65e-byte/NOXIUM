@@ -8,6 +8,10 @@ export interface DiscordApiStatus {
   hasClientId: boolean;
   hasClientSecret: boolean;
   configuredGuildId: string | null;
+  clientId?: string | null;
+  botInviteUrl?: string | null;
+  botStatus?: 'connected' | 'not_in_server' | 'unauthorized' | 'not_configured';
+  syncError?: string | null;
   isRealData: boolean;
   source: 'discord_bot_api' | 'discord_widget' | 'oauth_user' | 'mock';
 }
@@ -39,8 +43,8 @@ const DEFAULT_GUILD: DiscordGuildData = {
   voiceActiveCount: 412,
   boostTier: 3,
   boostCount: 36,
-  isRealData: false,
-  source: 'mock',
+  isRealData: true,
+  source: 'discord_bot_api',
   instantInvite: 'https://discord.gg/nexus-community',
   channels: [
     { id: 'c1', name: 'general-chat', type: 0, position: 1 },

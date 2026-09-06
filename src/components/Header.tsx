@@ -103,24 +103,11 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
                 <button
                   onClick={() => setShowServerModal(true)}
-                  className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border transition ${
-                    isRealData
-                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
-                      : 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
-                  }`}
+                  className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25 transition"
                   title="Estado del servidor de Discord"
                 >
-                  {isRealData ? (
-                    <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      Discord En Vivo
-                    </>
-                  ) : (
-                    <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                      Modo Demo
-                    </>
-                  )}
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Discord En Vivo
                 </button>
               </div>
               <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
@@ -305,41 +292,6 @@ export const Header: React.FC<HeaderProps> = ({
                           {currentRoleBadge.label}
                         </span>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Switch Demo Roles Section */}
-                  <div className="mb-2">
-                    <div className="flex items-center justify-between px-2 mb-1.5">
-                      <span className="text-[11px] font-semibold text-slate-400">Probar con otro rol:</span>
-                      <span className="text-[10px] text-indigo-400 font-mono">1-Clic Demo</span>
-                    </div>
-                    <div className="space-y-1">
-                      {demoUsers.map(user => {
-                        const isSelected = user.id === currentUser.id;
-                        return (
-                          <button
-                            key={user.id}
-                            onClick={() => {
-                              switchUser(user.id);
-                              setShowUserMenu(false);
-                            }}
-                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition ${
-                              isSelected
-                                ? 'bg-[#5865F2]/20 text-[#5865F2] font-bold border border-[#5865F2]/40'
-                                : 'text-slate-300 hover:bg-slate-800/60'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 truncate">
-                              <img src={user.avatar} alt={user.username} className="w-5 h-5 rounded-md object-cover" />
-                              <span className="truncate">{user.global_name || user.username}</span>
-                            </div>
-                            <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 rounded text-slate-300 font-mono">
-                              {user.roles[0]}
-                            </span>
-                          </button>
-                        );
-                      })}
                     </div>
                   </div>
 

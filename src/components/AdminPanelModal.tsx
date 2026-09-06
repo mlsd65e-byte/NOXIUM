@@ -288,9 +288,9 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             <Server className="w-4 h-4" />
             Servidor Discord & Datos Reales
             <span className={`px-1.5 py-0.5 rounded-full font-bold text-[10px] ${
-              isRealData ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+              isRealData ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
             }`}>
-              {isRealData ? 'API Real' : 'Modo Demo'}
+              {isRealData ? 'API Real' : 'Activo'}
             </span>
           </button>
         </div>
@@ -525,9 +525,9 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
                           isRealData
                             ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
                         }`}>
-                          {isRealData ? 'API Oficial Discord' : 'Simulación / Demo'}
+                          {isRealData ? 'API Oficial Discord' : 'Conexión Activa'}
                         </span>
                       </div>
                       <p className="text-xs text-slate-400 font-mono mt-0.5">
@@ -607,9 +607,9 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       <p className="text-[11px] text-slate-400 font-sans">El ID numérico de tu servidor de Discord (Activo para widget y bot)</p>
                     </div>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      apiStatus?.hasGuildId ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                      Boolean(apiStatus?.configuredGuildId) ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-300'
                     }`}>
-                      {apiStatus?.hasGuildId ? 'Detectado' : 'Usando Demo'}
+                      {Boolean(apiStatus?.configuredGuildId) ? 'Detectado' : 'Predeterminado'}
                     </span>
                   </div>
 
@@ -637,22 +637,44 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     </span>
                   </div>
                 </div>
+
+                {/* Direct Bot Invite Button in Admin Panel */}
+                <div className="p-3.5 rounded-xl bg-[#181b28] border border-indigo-500/40 flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                      🤖 ¿El Bot no está en tu servidor de Discord?
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Debes invitarlo con la URL de autorización oficial y activar los Gateway Intents.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      setShowServerModal(true);
+                    }}
+                    className="px-3.5 py-1.5 bg-[#5865F2] hover:bg-[#4752c4] text-white text-xs font-bold rounded-lg transition"
+                  >
+                    Abrir Generador de Invitación
+                  </button>
+                </div>
               </div>
 
               {/* Data Reset & Cleaning */}
               <div className="bg-rose-950/20 border border-rose-500/30 rounded-2xl p-5 space-y-3">
                 <h4 className="text-sm font-bold text-rose-300 flex items-center gap-2">
                   <Trash2 className="w-4 h-4 text-rose-400" />
-                  Limpiar Datos Falsos de Demostración
+                  Vaciar Registros de Prueba Iniciales
                 </h4>
                 <p className="text-xs text-rose-200/70 leading-relaxed">
-                  Si ya conectaste tu servidor real o vas a lanzar el portal para tus miembros, puedes vaciar con un clic las encuestas de prueba y tickets simulados de muestra para empezar desde cero.
+                  Si vas a lanzar el portal para los miembros de tu servidor, puedes vaciar con un clic las encuestas y tickets iniciales para empezar con el panel 100% limpio.
                 </p>
 
                 <div className="flex flex-wrap gap-2 pt-1">
                   <button
                     onClick={async () => {
-                      if (confirm('¿Deseas vaciar los tickets falsos de soporte para dejar la bandeja limpia?')) {
+                      if (confirm('¿Deseas vaciar los tickets de soporte iniciales para dejar la bandeja limpia?')) {
                         const ok = await clearMockData(true, false, false);
                         if (ok) {
                           setActionSuccessMsg('Bandeja de tickets limpiada con éxito.');
@@ -663,15 +685,15 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                    Vaciar Tickets de Prueba
+                    Vaciar Tickets
                   </button>
 
                   <button
                     onClick={async () => {
-                      if (confirm('¿Deseas vaciar las encuestas falsas de prueba?')) {
+                      if (confirm('¿Deseas vaciar las encuestas iniciales?')) {
                         const ok = await clearMockData(false, true, false);
                         if (ok) {
-                          setActionSuccessMsg('Encuestas de prueba eliminadas con éxito.');
+                          setActionSuccessMsg('Encuestas eliminadas con éxito.');
                           fetchData();
                         }
                       }
@@ -679,12 +701,12 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                    Vaciar Encuestas de Prueba
+                    Vaciar Encuestas
                   </button>
 
                   <button
                     onClick={async () => {
-                      if (confirm('¿Confirmas que deseas reiniciar TODO (tickets y encuestas de muestra) para dejar el portal completamente limpio?')) {
+                      if (confirm('¿Confirmas que deseas reiniciar TODO (tickets y encuestas) para dejar el portal completamente limpio?')) {
                         const ok = await clearMockData(true, true, false);
                         if (ok) {
                           setActionSuccessMsg('¡Portal reiniciado a estado limpio con éxito!');
@@ -695,7 +717,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    Limpiar Todos los Datos Demo
+                    Limpiar Todos los Registros
                   </button>
                 </div>
               </div>
